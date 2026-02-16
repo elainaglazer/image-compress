@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Image Compressor</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 500px; margin: auto; }
+        input, select { margin: 10px 0; width: 100%; padding: 8px; }
+        button { padding: 10px 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Upload and Compress Image</h2>
+        <form method="post" enctype="multipart/form-data">
+            <input type="file" name="image" accept="image/*" required><br>
+            <label>Quality (1-100):</label>
+            <input type="number" name="quality" value="80" min="1" max="100"><br>
+            <label>Width (px):</label>
+            <input type="number" name="width" value="670" min="1"><br>
+            <label>Format:</label>
+            <select name="format">
+                <option value="webp">WEBP</option>
+                <option value="jpg">JPG</option>
+                <option value="jpeg">JPEG</option>
+            </select><br>
+            <button type="submit">Compress & Download</button>
+        </form>
+    </div>
+</body>
+</html>
