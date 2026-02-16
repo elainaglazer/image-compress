@@ -5,16 +5,21 @@
   <title>Browser Image Compressor</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 40px; }
-    .container { max-width: 500px; margin: auto; }
+    .container { max-width: 600px; margin: auto; }
     input, select { margin: 10px 0; width: 100%; padding: 8px; }
     button { padding: 10px 20px; }
     img { max-width: 100%; margin-top: 20px; }
+    .note { background: #f0f0f0; padding: 10px; border-radius: 4px; margin-bottom: 10px; }
+    .sizes { background: #e8f7e8; padding: 10px; border-radius: 4px; margin-top: 10px; }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>Browser Image Compressor</h2>
-    <input type="file" id="inputImage" accept="image/*" required><br>
+    <div class="note">
+      <strong>Note:</strong> WebP and PNG preserve transparency (invisible backgrounds). JPEG does <b>not</b> preserve transparency; transparent areas become solid.
+    </div>
+    <input type="file" id="inputImage" accept="image/*" multiple required><br>
     <label>Quality (0.1 - 1):</label>
     <input type="number" id="quality" value="0.8" min="0.1" max="1" step="0.01"><br>
     <label>Width (px):</label>
@@ -22,39 +27,19 @@
       <input type="number" id="width" value="670" min="1" style="flex:1;">
       <button type="button" onclick="setOriginalWidth()">Original</button>
     </div>
-    <button onclick="compressImage()">Compress & Download</button>
+    <label>Format:</label>
+    <select id="format">
+      <option value="webp">WEBP</option>
+      <option value="png">PNG</option>
+      <option value="jpeg">JPEG</option>
+    </select><br>
+    <button onclick="compressBatch()">Compress & Download ZIP</button>
     <div id="preview"></div>
+    <div id="sizes" class="sizes" style="display:none;"></div>
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script>
     let originalWidth = null;
-    function compressImage() {
-      const fileInput = document.getElementById('inputImage');
-      const quality = parseFloat(document.getElementById('quality').value);
-      const width = parseInt(document.getElementById('width').value);
-      if (!fileInput.files.length) return alert('Please select an image.');
-      const file = fileInput.files[0];
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-          originalWidth = img.width;
-          let targetWidth = width || img.width;
-          let targetHeight = img.height * (targetWidth / img.width);
-          const canvas = document.createElement('canvas');
-          canvas.width = targetWidth;
-          canvas.height = targetHeight;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-          canvas.toBlob(function(blob) {
-            const url = URL.createObjectURL(blob);
-            document.getElementById('preview').innerHTML = `<img src="${url}"><br><a href="${url}" download="compressed.jpg">Download Compressed Image</a>`;
-          }, 'image/jpeg', quality);
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
-
     function setOriginalWidth() {
       const fileInput = document.getElementById('inputImage');
       if (!fileInput.files.length) {
@@ -71,6 +56,61 @@
         img.src = e.target.result;
       };
       reader.readAsDataURL(file);
+    }
+
+    function compressBatch() {
+      const fileInput = document.getElementById('inputImage');
+      const quality = parseFloat(document.getElementById('quality').value);
+      const width = parseInt(document.getElementById('width').value);
+      const format = document.getElementById('format').value;
+      if (!fileInput.files.length) return alert('Please select images.');
+      const zip = new JSZip();
+      let sizesHtml = '<strong>Estimated file sizes:</strong><br>';
+      let processed = 0;
+      for (let i = 0; i < fileInput.files.length; i++) {
+        const file = fileInput.files[i];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            let targetWidth = width || img.width;
+            let targetHeight = img.height * (targetWidth / img.width);
+            const canvas = document.createElement('canvas');
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+            let mime = 'image/jpeg';
+            if (format === 'webp') mime = 'image/webp';
+            if (format === 'png') mime = 'image/png';
+            canvas.toBlob(function(blob) {
+              zip.file(file.name.replace(/\.[^.]+$/, '') + '_compressed.' + format, blob);
+              sizesHtml += file.name + ': ' + format.toUpperCase() + ' - ' + getSizeFormat(blob.size) + '<br>';
+              processed++;
+              if (processed === fileInput.files.length) {
+                zip.generateAsync({type:'blob'}).then(function(content) {
+                  document.getElementById('sizes').innerHTML = sizesHtml;
+                  document.getElementById('sizes').style.display = 'block';
+                  const url = URL.createObjectURL(content);
+                  document.getElementById('preview').innerHTML = `<a href="${url}" download="compressed_images.zip">Download ZIP</a>`;
+                });
+              }
+            }, mime, quality);
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function getSizeFormat(b, factor=1024, suffix="B") {
+      const units = ["", "K", "M", "G", "T", "P", "E", "Z"];
+      let i = 0;
+      while (b >= factor && i < units.length - 1) {
+        b /= factor;
+        i++;
+      }
+      return b.toFixed(2) + units[i] + suffix;
     }
   </script>
 </body>
