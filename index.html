@@ -17,12 +17,16 @@
     <input type="file" id="inputImage" accept="image/*" required><br>
     <label>Quality (0.1 - 1):</label>
     <input type="number" id="quality" value="0.8" min="0.1" max="1" step="0.01"><br>
-    <label>Width (px, optional):</label>
-    <input type="number" id="width" placeholder="Leave blank for original"><br>
+    <label>Width (px):</label>
+    <div style="display: flex; gap: 8px;">
+      <input type="number" id="width" value="670" min="1" style="flex:1;">
+      <button type="button" onclick="setOriginalWidth()">Original</button>
+    </div>
     <button onclick="compressImage()">Compress & Download</button>
     <div id="preview"></div>
   </div>
   <script>
+    let originalWidth = null;
     function compressImage() {
       const fileInput = document.getElementById('inputImage');
       const quality = parseFloat(document.getElementById('quality').value);
@@ -33,6 +37,7 @@
       reader.onload = function(e) {
         const img = new Image();
         img.onload = function() {
+          originalWidth = img.width;
           let targetWidth = width || img.width;
           let targetHeight = img.height * (targetWidth / img.width);
           const canvas = document.createElement('canvas');
@@ -44,6 +49,24 @@
             const url = URL.createObjectURL(blob);
             document.getElementById('preview').innerHTML = `<img src="${url}"><br><a href="${url}" download="compressed.jpg">Download Compressed Image</a>`;
           }, 'image/jpeg', quality);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function setOriginalWidth() {
+      const fileInput = document.getElementById('inputImage');
+      if (!fileInput.files.length) {
+        alert('Please select an image first.');
+        return;
+      }
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          document.getElementById('width').value = img.width;
         };
         img.src = e.target.result;
       };
