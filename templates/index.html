@@ -13,6 +13,11 @@
 <body>
     <div class="container">
         <h2>Upload and Compress Image</h2>
+        {% if note %}
+        <div style="background:#f0f0f0;padding:10px;margin-bottom:10px;border-radius:4px;">
+            <strong>Note:</strong> {{ note }}
+        </div>
+        {% endif %}
         <form method="post" enctype="multipart/form-data">
             <input type="file" name="image" accept="image/*" required><br>
             <label>Quality (1-100):</label>
@@ -22,11 +27,19 @@
             <label>Format:</label>
             <select name="format">
                 <option value="webp">WEBP</option>
-                <option value="jpg">JPG</option>
+                <option value="png">PNG</option>
                 <option value="jpeg">JPEG</option>
             </select><br>
             <button type="submit">Compress & Download</button>
         </form>
+        {% if estimated_sizes %}
+        <div style="margin-top:20px;background:#e8f7e8;padding:10px;border-radius:4px;">
+            <strong>Estimated file sizes:</strong><br>
+            WEBP: {{ estimated_sizes['webp'] }}<br>
+            PNG: {{ estimated_sizes['png'] }}<br>
+            JPEG: {{ estimated_sizes['jpeg'] }}
+        </div>
+        {% endif %}
     </div>
 </body>
 </html>
