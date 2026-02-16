@@ -71,8 +71,11 @@
         const zip = new JSZip();
         let sizesHtml = '<strong>Estimated file sizes:</strong><br>';
         let processed = 0;
+        // preview area: clear and prepare
+        const previewArea = document.getElementById('preview');
+        previewArea.innerHTML = '';
         for (let i = 0; i < files.length; i++) {
-          (function(file){
+          (function(file, index){
             const reader = new FileReader();
             reader.onload = function(e) {
               const img = new Image();
@@ -92,12 +95,26 @@
                   zip.file(file.name.replace(/\.[^.]+$/, '') + '_compressed.' + ext, blob);
                   sizesHtml += file.name + ': ' + ext.toUpperCase() + ' - ' + getSizeFormat(blob.size) + '<br>';
                   processed++;
+                  // create preview thumbnail for first 6 files
+                  if (index < 6) {
+                    const thumbUrl = URL.createObjectURL(blob);
+                    const imgEl = document.createElement('img');
+                    imgEl.src = thumbUrl;
+                    imgEl.style.maxWidth = '120px';
+                    imgEl.style.margin = '6px';
+                    previewArea.appendChild(imgEl);
+                  }
                   if (processed === files.length) {
                     zip.generateAsync({type:'blob'}).then(function(content) {
                       document.getElementById('sizes').innerHTML = sizesHtml;
                       document.getElementById('sizes').style.display = 'block';
                       const url = URL.createObjectURL(content);
-                      document.getElementById('preview').innerHTML = `<a href="${url}" download="compressed_images.zip">Download ZIP</a>`;
+                      const zipLink = document.createElement('a');
+                      zipLink.href = url;
+                      zipLink.download = 'compressed_images.zip';
+                      zipLink.textContent = 'Download ZIP';
+                      zipLink.style.display = 'block';
+                      previewArea.appendChild(zipLink);
                     });
                   }
                 }, mime, quality);
@@ -105,7 +122,7 @@
               img.src = e.target.result;
             };
             reader.readAsDataURL(file);
-          })(files[i]);
+          })(files[i], i);
         }
       } else {
         // 1-3 images: provide individual compressed downloads
@@ -137,6 +154,14 @@
                   link.textContent = 'Download ' + link.download;
                   const div = document.createElement('div');
                   div.appendChild(document.createTextNode(file.name + ': '));
+                  div.appendChild(document.createElement('br'));
+                  // create thumbnail
+                  const thumb = document.createElement('img');
+                  thumb.src = url;
+                  thumb.style.maxWidth = '160px';
+                  thumb.style.display = 'block';
+                  thumb.style.marginBottom = '6px';
+                  div.appendChild(thumb);
                   div.appendChild(link);
                   document.getElementById('preview').appendChild(div);
                   sizesHtml += file.name + ': ' + ext.toUpperCase() + ' - ' + getSizeFormat(blob.size) + '<br>';
