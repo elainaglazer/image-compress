@@ -43,20 +43,32 @@ def index():
     note = "WebP and PNG preserve transparency (invisible backgrounds). JPEG does NOT preserve transparency; transparent areas become solid."
     estimated_sizes = None
     if request.method == 'POST':
-        file = request.files['image']
+        files = request.files.getlist('image')
         quality = int(request.form.get('quality', 80))
         width = int(request.form.get('width', 670))
         fmt = request.form.get('format', 'webp')
-        # Estimate sizes for all formats
-        sizes = {}
-        img_bytes = file.read()
-        for f in ['webp', 'png', 'jpeg']:
-            out = compress_img(io.BytesIO(img_bytes), quality=quality, width=width, output_format=f)
-            sizes[f] = len(out.getvalue())
-        estimated_sizes = {k: get_size_format(v) for k, v in sizes.items()}
-        # Compress for selected format
-        compressed = compress_img(io.BytesIO(img_bytes), quality=quality, width=width, output_format=fmt)
-        return send_file(compressed, download_name=f"compressed.{fmt}", as_attachment=True)
+        if len(files) == 1:
+            file = files[0]
+            img_bytes = file.read()
+            sizes = {}
+            for f in ['webp', 'png', 'jpeg']:
+                out = compress_img(io.BytesIO(img_bytes), quality=quality, width=width, output_format=f)
+                sizes[f] = len(out.getvalue())
+            estimated_sizes = {k: get_size_format(v) for k, v in sizes.items()}
+            compressed = compress_img(io.BytesIO(img_bytes), quality=quality, width=width, output_format=fmt)
+            return send_file(compressed, download_name=f"compressed.{fmt}", as_attachment=True)
+        else:
+            import zipfile
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for file in files:
+                    filename = file.filename
+                    img_bytes = file.read()
+                    compressed = compress_img(io.BytesIO(img_bytes), quality=quality, width=width, output_format=fmt)
+                    ext = fmt if fmt != 'jpeg' else 'jpg'
+                    zipf.writestr(f"{os.path.splitext(filename)[0]}_compressed.{ext}", compressed.getvalue())
+            zip_buffer.seek(0)
+            return send_file(zip_buffer, download_name="compressed_images.zip", as_attachment=True)
     return render_template('index.html', note=note, estimated_sizes=estimated_sizes)
 
 if __name__ == '__main__':
