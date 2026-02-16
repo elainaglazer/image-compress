@@ -1,22 +1,17 @@
-# Image Compressor Web App
+# Browser Image Compressor
 
-This is a simple Flask web app for compressing images. Upload an image, set quality and width, and download the compressed result.
+This is a pure HTML/JavaScript app for compressing images directly in your browser. No server or Python required.
 
 ## Usage
 
-1. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-2. Run the app:
-   ```
-   python app.py
-   ```
-3. Open your browser at http://127.0.0.1:5000
+1. Open index.html in your browser.
+2. Upload an image, set quality and width, and download the compressed result.
 
 ## Deployment
 
-You can deploy this app to platforms like Heroku, Render, or Vercel for public access.
+- Push this file to your GitHub repository.
+- Enable GitHub Pages in your repo settings (set source to main branch).
+- Your app will be live online!
 
 ## License
 MIT
