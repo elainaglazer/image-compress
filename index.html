@@ -63,43 +63,95 @@
       const quality = parseFloat(document.getElementById('quality').value);
       const width = parseInt(document.getElementById('width').value);
       const format = document.getElementById('format').value;
-      if (!fileInput.files.length) return alert('Please select images.');
-      const zip = new JSZip();
-      let sizesHtml = '<strong>Estimated file sizes:</strong><br>';
-      let processed = 0;
-      for (let i = 0; i < fileInput.files.length; i++) {
-        const file = fileInput.files[i];
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const img = new Image();
-          img.onload = function() {
-            let targetWidth = width || img.width;
-            let targetHeight = img.height * (targetWidth / img.width);
-            const canvas = document.createElement('canvas');
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-            let mime = 'image/jpeg';
-            if (format === 'webp') mime = 'image/webp';
-            if (format === 'png') mime = 'image/png';
-            canvas.toBlob(function(blob) {
-              zip.file(file.name.replace(/\.[^.]+$/, '') + '_compressed.' + format, blob);
-              sizesHtml += file.name + ': ' + format.toUpperCase() + ' - ' + getSizeFormat(blob.size) + '<br>';
-              processed++;
-              if (processed === fileInput.files.length) {
-                zip.generateAsync({type:'blob'}).then(function(content) {
-                  document.getElementById('sizes').innerHTML = sizesHtml;
-                  document.getElementById('sizes').style.display = 'block';
-                  const url = URL.createObjectURL(content);
-                  document.getElementById('preview').innerHTML = `<a href="${url}" download="compressed_images.zip">Download ZIP</a>`;
-                });
-              }
-            }, mime, quality);
-          };
-          img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
+      const files = fileInput.files;
+      if (!files.length) return alert('Please select images.');
+
+      // If more than 3 images, produce a ZIP; otherwise give individual downloads
+      if (files.length > 3) {
+        const zip = new JSZip();
+        let sizesHtml = '<strong>Estimated file sizes:</strong><br>';
+        let processed = 0;
+        for (let i = 0; i < files.length; i++) {
+          (function(file){
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              const img = new Image();
+              img.onload = function() {
+                let targetWidth = width || img.width;
+                let targetHeight = img.height * (targetWidth / img.width);
+                const canvas = document.createElement('canvas');
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+                let mime = 'image/jpeg';
+                if (format === 'webp') mime = 'image/webp';
+                if (format === 'png') mime = 'image/png';
+                canvas.toBlob(function(blob) {
+                  const ext = format === 'jpeg' ? 'jpg' : format;
+                  zip.file(file.name.replace(/\.[^.]+$/, '') + '_compressed.' + ext, blob);
+                  sizesHtml += file.name + ': ' + ext.toUpperCase() + ' - ' + getSizeFormat(blob.size) + '<br>';
+                  processed++;
+                  if (processed === files.length) {
+                    zip.generateAsync({type:'blob'}).then(function(content) {
+                      document.getElementById('sizes').innerHTML = sizesHtml;
+                      document.getElementById('sizes').style.display = 'block';
+                      const url = URL.createObjectURL(content);
+                      document.getElementById('preview').innerHTML = `<a href="${url}" download="compressed_images.zip">Download ZIP</a>`;
+                    });
+                  }
+                }, mime, quality);
+              };
+              img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+          })(files[i]);
+        }
+      } else {
+        // 1-3 images: provide individual compressed downloads
+        document.getElementById('preview').innerHTML = '';
+        let sizesHtml = '<strong>Estimated file sizes:</strong><br>';
+        let processed = 0;
+        for (let i = 0; i < files.length; i++) {
+          (function(file){
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              const img = new Image();
+              img.onload = function() {
+                let targetWidth = width || img.width;
+                let targetHeight = img.height * (targetWidth / img.width);
+                const canvas = document.createElement('canvas');
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+                let mime = 'image/jpeg';
+                if (format === 'webp') mime = 'image/webp';
+                if (format === 'png') mime = 'image/png';
+                canvas.toBlob(function(blob) {
+                  const ext = format === 'jpeg' ? 'jpg' : format;
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.download = file.name.replace(/\.[^.]+$/, '') + '_compressed.' + ext;
+                  link.textContent = 'Download ' + link.download;
+                  const div = document.createElement('div');
+                  div.appendChild(document.createTextNode(file.name + ': '));
+                  div.appendChild(link);
+                  document.getElementById('preview').appendChild(div);
+                  sizesHtml += file.name + ': ' + ext.toUpperCase() + ' - ' + getSizeFormat(blob.size) + '<br>';
+                  processed++;
+                  if (processed === files.length) {
+                    document.getElementById('sizes').innerHTML = sizesHtml;
+                    document.getElementById('sizes').style.display = 'block';
+                  }
+                }, mime, quality);
+              };
+              img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+          })(files[i]);
+        }
       }
     }
 
